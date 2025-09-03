@@ -1,0 +1,326 @@
+/* admin-panel/src/App.css - نسخه نهایی و کامل */
+
+/* ۱. متغیرهای اصلی برای رنگ‌بندی و تم کلی */
+:root {
+  --sidebar-bg: #1e293b;   /* پس‌زمینه سایدبار */
+  --content-bg: #f1f5f9;   /* پس‌زمینه محتوای اصلی */
+  --card-bg: #ffffff;     /* پس‌زمینه کارت‌ها و جداول */
+  --text-dark: #0f172a;    /* رنگ متن اصلی */
+  --text-light: #f8fafc;   /* رنگ متن روشن */
+  --text-muted: #64748b;   /* رنگ متن کم‌رنگ‌تر */
+  --primary: #4f46e5;      /* رنگ اصلی (بنفش) */
+  --primary-hover: #4338ca;/* رنگ اصلی در حالت هاور */
+  --danger: #ef4444;       /* رنگ خطر (قرمز) */
+  --border-color: #e2e8f0; /* رنگ حاشیه‌ها */
+}
+
+/* ۲. استایل‌های عمومی و پایه */
+body {
+  margin: 0;
+  font-family: 'Vazirmatn', sans-serif;
+  background-color: var(--content-bg);
+  color: var(--text-dark);
+  direction: rtl;
+}
+
+/* ۳. چیدمان اصلی پنل */
+.admin-layout {
+  display: flex;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: var(--sidebar-bg);
+  min-height: 100vh;
+  padding: 20px;
+  flex-shrink: 0;
+  color: var(--text-light);
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 30px 40px;
+  overflow-y: auto;
+}
+
+/* ۴. استایل‌های سایدبار (منوی کناری) */
+.sidebar h1 {
+  text-align: center;
+  color: var(--text-light);
+  font-size: 1.8rem;
+  margin-bottom: 40px;
+}
+.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+}
+.sidebar nav li {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-size: 1.1rem;
+  color: #94a3b8; /* رنگ متن آیتم‌های غیرفعال */
+}
+.sidebar nav li:hover {
+  background-color: #334155;
+  color: var(--text-light);
+}
+.sidebar nav li.active {
+  background-color: var(--primary);
+  color: var(--text-light);
+  font-weight: bold;
+}
+
+/* ۵. استایل‌های بخش محتوا */
+.admin-content-header {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+}
+.admin-content-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+}
+
+/* ۶. استایل‌های جدول */
+.admin-table-container {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+}
+.admin-table th, .admin-table td {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+.admin-table thead {
+  background-color: #f8fafc;
+}
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.admin-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* ۷. استایل‌های فرم */
+.admin-form {
+  background-color: var(--card-bg);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  margin-bottom: 30px;
+  border: 1px solid var(--border-color);
+}
+.form-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.admin-form input,
+.admin-form textarea,
+.admin-form select {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.admin-form input:focus,
+.admin-form textarea:focus,
+.admin-form select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px #c7d2fe;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+}
+
+/* ۸. استایل‌های دکمه‌ها */
+.btn-primary, .btn-secondary, .btn-danger {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+.btn-secondary {
+  background-color: #e2e8f0;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn-secondary:hover {
+  background-color: #cbd5e1;
+}
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+.btn-danger:hover {
+  background-color: #dc2626;
+}/* admin-panel/src/App.css - استایل‌های بخش مدیریت دسته‌بندی */
+
+.category-manager {
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+.category-manager h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+}
+.category-add-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.category-add-form input {
+  flex-grow: 1;
+}
+.category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e2e8f0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.category-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.category-item button:hover {
+  color: var(--danger);
+}/* admin-panel/src/App.css - استایل‌های جدید برای مدیریت بانک دانش */
+
+.dynamic-manager {
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+.dynamic-manager h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+}
+.dynamic-add-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.dynamic-add-form input {
+  flex-grow: 1;
+}
+.dynamic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dynamic-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e2e8f0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.dynamic-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0 2px 0;
+}
+.dynamic-item button:hover {
+  color: var(--danger);
+}
+
+/* استایل برای فیلدهای قیمت و آپلود فایل */
+.form-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.form-group-inline label {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.file-input-label {
+  display: block;
+  padding: 10px 15px;
+  background-color: #f1f5f9;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+}
+.file-input-label:hover {
+  background-color: #e2e8f0;
+}
+input[type="file"] {
+  display: none; /* خود اینپوت را مخفی می‌کنیم */
+}
+.file-name {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
