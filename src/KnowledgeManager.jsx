@@ -4,8 +4,39 @@ import React, { useState, useEffect } from 'react';
 // یک فرم خالی برای ریست کردن
 const emptyForm = {
   title: '', summary: '', tags: '', content: '',
-  access: 'free', price: 0,
+  access: 'free', price: 0, category: '', format: ''
 };
+
+// تابع کمکی برای ارسال درخواست‌های امن به بک‌اند
+const fetchWithAuth = async (url, options = {}) => {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('دسترسی غیرمجاز! لطفاً ابتدا به عنوان ادمین وارد شوید.');
+    window.location.href = 'http://localhost:3000'; // آدرس اپلیکیشن اصلی شما
+    return Promise.reject(new Error('No auth token found'));
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': token,
+  };
+
+  // اگر در حال ارسال فایل هستیم، Content-Type را تنظیم نمی‌کنیم
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 || response.status === 403) {
+    alert('نشست شما منقضی شده است. لطفاً دوباره وارد شوید.');
+    window.location.href = 'http://localhost:3000';
+    return Promise.reject(new Error('Unauthorized'));
+  }
+
+  return response;
+};
+
 
 function KnowledgeManager() {
   const [articles, setArticles] = useState([]);
@@ -13,48 +44,70 @@ function KnowledgeManager() {
   const [formats, setFormats] = useState([]);
   
   const [form, setForm] = useState(emptyForm);
-  const [file, setFile] = useState(null); // استیت برای نگهداری فایل آپلود شده
+  const [file, setFile] = useState(null);
   const [isEditing, setIsEditing] = useState(null);
   
   const [newCategory, setNewCategory] = useState('');
   const [newFormat, setNewFormat] = useState('');
 
-  // لود کردن تمام داده‌ها از بک‌اند
+  // لود کردن تمام داده‌ها از بک‌اند به صورت امن
   useEffect(() => {
-    // در یک اپلیکیشن واقعی، بهتر است اینها همزمان fetch شوند
-    fetch('http://localhost:5001/api/articles').then(res => res.json()).then(setArticles);
-    fetch('http://localhost:5001/api/knowledge/categories').then(res => res.json()).then(setCategories);
-    fetch('http://localhost:5001/api/knowledge/formats').then(res => res.json()).then(setFormats);
+    const loadInitialData = async () => {
+      try {
+        const articlesRes = await fetchWithAuth('http://localhost:5001/api/articles');
+        setArticles(await articlesRes.json());
+        
+        const categoriesRes = await fetchWithAuth('http://localhost:5001/api/knowledge/categories');
+        const cats = await categoriesRes.json();
+        setCategories(cats);
+        if(cats.length > 0) setForm(prev => ({...prev, category: cats[0].name}));
+        
+        const formatsRes = await fetchWithAuth('http://localhost:5001/api/knowledge/formats');
+        const fmts = await formatsRes.json();
+        setFormats(fmts);
+        if(fmts.length > 0) setForm(prev => ({...prev, format: fmts[0].name}));
+      } catch (error) {
+        console.error("Failed to load initial data:", error);
+      }
+    };
+    loadInitialData();
   }, []);
   
-  // توابع مدیریت دسته و نوع (افزودن و حذف)
+  // توابع مدیریت دسته و نوع (افزودن و حذف) - حالا امن شده
   const handleAddItem = async (type, value) => {
     if (!value.trim()) return;
     const url = `http://localhost:5001/api/knowledge/${type}s`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: value }),
-    });
-    if (response.ok) {
-      const newItem = await response.json();
-      if (type === 'category') {
-        setCategories(prev => [...prev, newItem]);
-        setNewCategory('');
-      } else {
-        setFormats(prev => [...prev, newItem]);
-        setNewFormat('');
+    try {
+      const response = await fetchWithAuth(url, {
+        method: 'POST',
+        body: JSON.stringify({ name: value }),
+      });
+      if (response.ok) {
+        const newItem = await response.json();
+        if (type === 'category') {
+          setCategories(prev => [...prev, newItem]);
+          setNewCategory('');
+        } else {
+          setFormats(prev => [...prev, newItem]);
+          setNewFormat('');
+        }
       }
+    } catch (error) {
+      console.error(`Failed to add ${type}:`, error);
     }
   };
 
   const handleDeleteItem = async (type, id) => {
     if (window.confirm('آیا از حذف این آیتم مطمئن هستید؟')) {
       const url = `http://localhost:5001/api/knowledge/${type}s/${id}`;
-      const response = await fetch(url, { method: 'DELETE' });
-      if (response.ok) {
-        if (type === 'category') setCategories(prev => prev.filter(c => c._id !== id));
-        else setFormats(prev => prev.filter(f => f._id !== id));
+      try {
+        const response = await fetchWithAuth(url, { method: 'DELETE' });
+        if (response.ok) {
+          if (type === 'category') setCategories(prev => prev.filter(c => c._id !== id));
+          else setFormats(prev => prev.filter(f => f._id !== id));
+        }
+      } catch (error) {
+        console.error(`Failed to delete ${type}:`, error);
       }
     }
   };
@@ -75,17 +128,19 @@ function KnowledgeManager() {
   
   const cancelEdit = () => {
     setIsEditing(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      category: categories.length > 0 ? categories[0].name : '',
+      format: formats.length > 0 ? formats[0].name : ''
+    });
     setFile(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // از FormData برای ارسال همزمان متن و فایل استفاده می‌کنیم
     const formData = new FormData();
     Object.keys(form).forEach(key => {
-      // ارسال تگ‌ها به صورت آرایه
       if (key === 'tags') {
         form.tags.split(',').map(tag => formData.append('tags', tag.trim()));
       } else {
@@ -93,34 +148,37 @@ function KnowledgeManager() {
       }
     });
     if (file) {
-      formData.append('file', file); // فایل را به فرم اضافه می‌کنیم
+      formData.append('file', file);
     }
 
     const url = isEditing ? `http://localhost:5001/api/articles/${isEditing}` : 'http://localhost:5001/api/articles';
     const method = isEditing ? 'PUT' : 'POST';
 
-    const response = await fetch(url, { method, body: formData });
-    
-    if (response.ok) {
-      const savedArticle = await response.json();
-      if (isEditing) {
-        setArticles(prev => prev.map(a => a._id === isEditing ? savedArticle : a));
-        alert('مطلب با موفقیت ویرایش شد!');
+    try {
+      const response = await fetchWithAuth(url, { method, body: formData });
+      if (response.ok) {
+        const savedArticle = await response.json();
+        if (isEditing) {
+          setArticles(prev => prev.map(a => a._id === isEditing ? savedArticle : a));
+          alert('مطلب با موفقیت ویرایش شد!');
+        } else {
+          setArticles(prev => [...prev, savedArticle]);
+          alert('مطلب با موفقیت افزوده شد!');
+        }
+        cancelEdit();
       } else {
-        setArticles(prev => [...prev, savedArticle]);
-        alert('مطلب با موفقیت افزوده شد!');
+        const errData = await response.json();
+        throw new Error(errData.error || 'خطا در ذخیره مطلب.');
       }
-      cancelEdit();
-    } else {
-      alert('خطا در ذخیره مطلب.');
+    } catch (error) {
+      alert(error.message);
+      console.error("Failed to submit article:", error);
     }
   };
 
   return (
     <div>
       <h2 className="admin-content-header">مدیریت بانک دانش</h2>
-
-      {/* بخش جدید مدیریت دسته و نوع */}
       <div className="dynamic-manager">
         <h3>مدیریت دسته‌بندی‌ها</h3>
         <form onSubmit={(e) => {e.preventDefault(); handleAddItem('category', newCategory)}} className="dynamic-add-form">
@@ -147,7 +205,6 @@ function KnowledgeManager() {
         <input name="title" value={form.title} onChange={handleInputChange} placeholder="عنوان" required />
         <textarea name="summary" value={form.summary} onChange={handleInputChange} placeholder="خلاصه" required />
         <input name="tags" value={form.tags} onChange={handleInputChange} placeholder="تگ‌ها (با کاما جدا کنید)" />
-        
         <div className="form-section">
           <select name="format" value={form.format} onChange={handleInputChange}>
             {formats.map(f => <option key={f._id} value={f.name}>{f.name}</option>)}
@@ -156,35 +213,30 @@ function KnowledgeManager() {
             {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
           </select>
         </div>
-
-        {/* بخش جدید قیمت‌گذاری و آپلود فایل */}
         <div className="form-section">
-          <div className="form-group">
-            <label>نوع دسترسی</label>
-            <select name="access" value={form.access} onChange={handleInputChange}>
-              <option value="free">رایگان</option>
-              <option value="paid">پولی</option>
-            </select>
-          </div>
-          {form.access === 'paid' && (
             <div className="form-group">
-              <label>قیمت (تومان)</label>
-              <input name="price" type="number" value={form.price} onChange={handleInputChange} placeholder="مثلا: 50000" />
+                <label>نوع دسترسی</label>
+                <select name="access" value={form.access} onChange={handleInputChange}>
+                  <option value="free">رایگان</option>
+                  <option value="paid">پولی</option>
+                </select>
             </div>
-          )}
+            {form.access === 'paid' && (
+                <div className="form-group">
+                  <label>قیمت (تومان)</label>
+                  <input name="price" type="number" value={form.price} onChange={handleInputChange} placeholder="مثلا: 50000" />
+                </div>
+            )}
         </div>
         <div className="form-section">
             <div className="form-group">
                 <label>فایل ضمیمه (اختیاری)</label>
-                <label htmlFor="file-upload" className="file-input-label">
-                    <i className="fa-solid fa-upload"></i> انتخاب فایل
-                </label>
+                <label htmlFor="file-upload" className="file-input-label"><i className="fa-solid fa-upload"></i> انتخاب فایل</label>
                 <input id="file-upload" type="file" onChange={handleFileChange} />
                 {file && <span className="file-name">فایل انتخاب شده: {file.name}</span>}
                 {isEditing && form.fileUrl && <span className="file-name">فایل فعلی: <a href={form.fileUrl} target="_blank" rel="noopener noreferrer">دانلود</a></span>}
             </div>
         </div>
-        
         <div className="form-actions">
           <button type="submit" className="btn-primary">{isEditing ? 'ذخیره تغییرات' : 'ذخیره مطلب'}</button>
           {isEditing && <button type="button" className="btn-secondary" onClick={cancelEdit}>انصراف</button>}
@@ -201,11 +253,7 @@ function KnowledgeManager() {
                 <td>{article.title}</td>
                 <td>{article.format}</td>
                 <td>{article.category}</td>
-                <td>
-                    <span className={`status-pill ${article.access === 'paid' ? 'paid' : 'free'}`}>
-                    {article.access === 'paid' ? `${article.price.toLocaleString('fa-IR')} تومان` : 'رایگان'}
-                    </span>
-                </td>
+                <td><span className={`status-pill ${article.access === 'paid' ? 'paid' : 'free'}`}>{article.access === 'paid' ? `${(article.price || 0).toLocaleString('fa-IR')} تومان` : 'رایگان'}</span></td>
                 <td>
                     <div className="table-actions">
                         <button className="btn-edit" onClick={() => handleEdit(article)}>ویرایش</button>

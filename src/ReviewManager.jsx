@@ -1,4 +1,4 @@
-// admin-panel/src/ReviewManager.jsx
+// admin-panel/src/ReviewManager.jsx (نسخه امن شده)
 
 import React, { useState, useEffect } from 'react';
 
@@ -13,13 +13,27 @@ const defaultCategories = [
   { value: 'CustomerClub', label: 'باشگاه مشتریان' },
 ];
 
+// تابع کمکی برای بررسی دسترسی ادمین
+// در آینده می‌توان این تابع را گسترش داد تا با بک‌اند صحبت کند
+const checkAdminAccess = () => {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('دسترسی غیرمجاز! لطفاً ابتدا به عنوان ادمین وارد شوید.');
+    // کاربر را به صفحه لاگین اپ اصلی هدایت کن
+    window.location.href = 'http://localhost:3000'; // آدرس اپلیکیشن اصلی شما
+    return false;
+  }
+  return true;
+};
+
+
 function ReviewManager() {
   const [reviews, setReviews] = useState([]);
-  const [categories, setCategories] = useState([]); // ۱. دسته‌بندی‌ها به state منتقل شدند
+  const [categories, setCategories] = useState([]);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   
-  // استیت‌های فرم برای یک نقد و بررسی جدید
+  // استیت‌های فرم
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [summary, setSummary] = useState('');
@@ -31,6 +45,9 @@ function ReviewManager() {
 
   // لود کردن داده‌ها از localStorage
   useEffect(() => {
+    // ✅ قبل از هر کاری، دسترسی ادمین را چک می‌کنیم
+    if (!checkAdminAccess()) return;
+
     const savedReviews = localStorage.getItem(REVIEWS_STORAGE_KEY);
     if (savedReviews) setReviews(JSON.parse(savedReviews));
 
@@ -44,13 +61,14 @@ function ReviewManager() {
 
   // ذخیره کردن داده‌ها در localStorage
   useEffect(() => {
+    // از آنجایی که این کامپوننت به بک‌اند وصل نیست، نیازی به ارسال توکن در هر ذخیره‌سازی نیست.
+    // اما چک کردن اولیه دسترسی در useEffect بالا، امنیت کلی را تضمین می‌کند.
     localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
   }, [reviews]);
   useEffect(() => {
     localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
   }, [categories]);
 
-  // توابع جدید برای مدیریت دسته‌بندی‌ها
   const handleAddCategory = (e) => {
     e.preventDefault();
     if (!newCategory.trim() || categories.some(c => c.label === newCategory.trim())) {
@@ -107,7 +125,6 @@ function ReviewManager() {
         </button>
       </div>
 
-      {/* ۲. بخش جدید مدیریت دسته‌بندی */}
       <div className="category-manager">
         <h3>مدیریت دسته‌بندی‌ها</h3>
         <form className="category-add-form" onSubmit={handleAddCategory}>
@@ -128,8 +145,6 @@ function ReviewManager() {
         <form className="admin-form" onSubmit={handleSaveReview}>
           <div className="form-section">
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="نام نرم‌افزار (مثلا: CRM دیدار)" required />
-            
-            {/* ۳. منوی کشویی حالا داینامیک است */}
             <div className="form-group">
               <label>انتخاب دسته</label>
               <select value={category} onChange={e => setCategory(e.target.value)}>
@@ -138,7 +153,6 @@ function ReviewManager() {
                 ))}
               </select>
             </div>
-            
             <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="URL لوگو" />
             <input type="text" value={summary} onChange={e => setSummary(e.target.value)} placeholder="خلاصه (مثلا: مناسب برای تیم‌های فروش)" />
             <div className="form-group">

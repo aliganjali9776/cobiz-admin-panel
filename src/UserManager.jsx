@@ -1,12 +1,56 @@
-// admin-panel/src/UserManager.jsx
+// admin-panel/src/UserManager.jsx (نسخه امن شده)
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-function UserManager({ users }) {
-  // یک تابع برای تبدیل وضعیت دسترسی به متن فارسی
+// تابع کمکی برای ارسال درخواست‌های امن به بک‌اند
+const fetchWithAuth = async (url, options = {}) => {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('دسترسی غیرمجاز! لطفاً ابتدا به عنوان ادمین وارد شوید.');
+    window.location.href = 'http://localhost:3000'; // آدرس اپلیکیشن اصلی شما
+    return Promise.reject(new Error('No auth token found'));
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': token,
+    'Content-Type': 'application/json',
+  };
+
+  const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 || response.status === 403) {
+    alert('نشست شما منقضی شده است. لطفاً دوباره وارد شوید.');
+    window.location.href = 'http://localhost:3000';
+    return Promise.reject(new Error('Unauthorized'));
+  }
+
+  return response;
+};
+
+function UserManager() {
+  const [users, setUsers] = useState([]);
+
+  // ✅ لود کردن لیست کاربران به صورت امن
+  useEffect(() => {
+    const getUsers = async () => {
+      try {
+        const response = await fetchWithAuth('http://localhost:5001/api/users'); // آدرس API برای گرفتن همه کاربران
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data);
+        } else {
+          throw new Error('خطا در دریافت لیست کاربران');
+        }
+      } catch (error) {
+        console.error(error.message);
+      }
+    };
+    getUsers();
+  }, []);
+
   const getAccessStatus = (user) => {
-    // این منطق را می‌توانید بر اساس داده‌های واقعی خود تغییر دهید
-    // مثلاً اگر کاربر اشتراک خریده باشد
+    // در آینده می‌توانید این بخش را بر اساس اشتراک کاربر کامل کنید
     return "رایگان"; 
   };
 
@@ -49,7 +93,7 @@ function UserManager({ users }) {
             ) : (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center' }}>
-                  هنوز کاربری ثبت‌نام نکرده است.
+                  در حال بارگذاری کاربران...
                 </td>
               </tr>
             )}
@@ -59,10 +103,5 @@ function UserManager({ users }) {
     </div>
   );
 }
-
-// کامپوننت UserManager به صورت پیش‌فرض یک آرایه خالی می‌گیرد تا در صورت نبود کاربر، خطا ندهد
-UserManager.defaultProps = {
-  users: []
-};
 
 export default UserManager;
